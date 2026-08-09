@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ボドゲ リソースカウンター</title>
+  <!-- QRコード生成ライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 20px; background: #f4f4f9; color: #333; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 500px; }
+    .btn { font-size: 1.5rem; padding: 10px 20px; margin: 5px; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-add { background-color: #4CAF50; color: white; }
+    .btn-sub { background-color: #f44336; color: white; }
+    .resource-val { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+    #qrcode { display: flex; justify-content: center; margin: 15px 0; }
+    .player-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <!-- マザー表示 (iPad側) -->
+  <div id="mother-view" class="card" style="display: none;">
+    <h2>🎲 マザーモニター (部屋ID: <span id="room-id-disp"></span>)</h2>
+    <p>スマホで以下を読み込んで参加！</p>
+    <div id="qrcode"></div>
+    <hr>
+    <h3>全プレイヤーの状態</h3>
+    <div id="players-list">待機中...</div>
+  </div>
+
+  <!-- プレイヤー表示 (スマホ側) -->
+  <div id="player-view" class="card" style="display: none;">
+    <h2 id="player-name-disp">プレイヤー画面</h2>
+    <div>
+      <h3>コイン</h3>
+      <div class="resource-val" id="coin-val">0</div>
+      <button class="btn btn-sub" onclick="changeResource('coins', -1)">-1</button>
+      <button class="btn btn-add" onclick="changeResource('coins', 1)">+1</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (Modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // 1. Firebase設定（ご自身のものに置き換えてください）
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // URLクエリパラメータの解析
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role');
+    let roomId = urlParams.get('room');
+    let playerId = urlParams.get('player');
+
+    // === 【A】マザー側の処理 ===
+    if (role !== 'player') {
+      document.getElementById('mother-view').style.display = 'block';
+      
+      // 部屋IDの発行（ランダム4桁）
+      roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+      document.getElementById('room-id-disp').innerText = roomId;
+
+      // 参加用URLとQRコード生成
+      // ※プレイヤーIDはとりあえずランダム発行して接続させる簡易仕様
+      const joinUrl = `${window.location.origin}${window.location.pathname}?role=player&room=${roomId}&player=P_${Math.floor(Math.random()*1000)}`;
+      new QRCode(document.getElementById("qrcode"), {
+        text: joinUrl,
+        width: 160,
+        height: 160
+      });
+
+      // Firebaseのリアルタイム監視 (`rooms/部屋ID/players`)
+      const playersRef = ref(db, `rooms/${roomId}/players`);
+      onValue(playersRef, (snapshot) => {
+        const data = snapshot.val();
+        const container = document.getElementById('players-list');
+        if (!data) {
+          container.innerHTML = "<p>プレイヤーの参加を待っています...</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        Object.entries(data).forEach(([id, player]) => {
+          container.innerHTML += `
+            <div class="player-row">
+              <strong>${id}</strong>
+              <span>🪙 コイン: <b>${player.coins || 0}</b></span>
+            </div>
+          `;
+        });
+      });
+
+    // === 【B】プレイヤー側の処理 ===
+    } else {
+      document.getElementById('player-view').style.display = 'block';
+      document.getElementById('player-name-disp').innerText = `ID: ${playerId}`;
+
+      const myRef = ref(db, `rooms/${roomId}/players/${playerId}`);
+
+      // 初期値の作成
+      set(myRef, { coins: 0 });
+
+      // 自分のデータをリアルタイム反映
+      onValue(myRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          document.getElementById('coin-val').innerText = data.coins || 0;
+        }
+      });
+
+      // カウント変更用関数をグローバルに登録
+      window.changeResource = (resourceType, delta) => {
+        const currentVal = parseInt(document.getElementById('coin-val').innerText) || 0;
+        const newVal = Math.max(0, currentVal + delta); // 0未満にはならない
+        
+        // Firebaseへ書き込み（この瞬間にマザーへも同期される）
+        update(myRef, { [resourceType]: newVal });
+
+        // 押し心地用のタップ振動 (対応端末のみ)
+        if (navigator.vibrate) navigator.vibrate(40);
+      };
+    }
+  </script>
+</body>
+</html>
