@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ボドゲ リソースカウンター</title>
+  <title>ボドゲ リソースカウンター v1.2.0</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 15px; background: #f4f4f9; color: #333; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 500px; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 500px; position: relative; }
     .btn { font-size: 1.2rem; padding: 10px 18px; margin: 4px; border: none; border-radius: 8px; cursor: pointer; touch-action: manipulation; user-select: none; font-weight: bold; }
     .btn-action { background-color: #2196F3; color: white; }
     .btn-danger { background-color: #d32f2f; color: white; font-size: 0.9rem; margin-top: 15px; }
@@ -33,13 +33,17 @@
     .player-res-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
     .res-tag { padding: 4px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 0.9rem; }
     .alert-box { color: #d32f2f; font-weight: bold; padding: 20px; }
+
+    /* バージョン表記バッジ */
+    .version-badge { display: inline-block; background: #e0e0e0; color: #666; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
+    .app-footer { margin-top: 20px; font-size: 0.8rem; color: #888; }
   </style>
 </head>
 <body>
 
 <!-- 1. マザー表示 (iPad / 親機) -->
 <div id="mother-view" class="card" style="display: none;">
-  <h2>🎲 マザーモニター</h2>
+  <h2>🎲 マザーモニター <span class="version-badge">v1.2.0</span></h2>
   <p>部屋ID: <strong id="room-id-disp" style="font-size: 1.6rem; color: #007bff;"></strong></p>
   
   <!-- QRコード折りたたみ -->
@@ -65,25 +69,31 @@
   <div id="players-list">待機中...</div>
   
   <button id="end-game-btn" class="btn btn-danger">ゲームを終了して部屋を削除</button>
+  <div class="app-footer">Board Game Resource Counter v1.2.0</div>
 </div>
 
 <!-- 2. プレイヤー表示 (スマホ / 子機) -->
 <div id="player-view" class="card" style="display: none;">
-  <h2 id="player-name-disp">プレイヤー画面</h2>
+  <h2><span id="player-name-disp">プレイヤー画面</span> <span class="version-badge">v1.2.0</span></h2>
   <div id="player-resources-container">
     <p>リソースの設定を待っています...</p>
   </div>
+  <div class="app-footer">Board Game Resource Counter v1.2.0</div>
 </div>
 
 <!-- 3. 部屋終了・無効表示 -->
 <div id="closed-view" class="card" style="display: none;">
   <div class="alert-box">⚠️ 部屋が存在しないか、ゲームが終了しました。</div>
   <p>QRコードを再度読み直すか、新しいゲームを開始してください。</p>
+  <div class="app-footer">Board Game Resource Counter v1.2.0</div>
 </div>
 
 <script type="module">
-  // 外部化した設定ファイルから db インスタンスを読み込み
-  import { db } from "./firebase-config.js";
+  // バージョン定数
+  const APP_VERSION = "1.2.0";
+
+  // モジュール読み込み時にクエリパラメータを付与してキャッシュを回避
+  import { db } from `./firebase-config.js?v=${APP_VERSION}`;
   import { ref, set, onValue, update, remove, onDisconnect, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -101,9 +111,10 @@
 
     const roomRef = ref(db, `rooms/${roomId}`);
 
-    // デフォルトのリソース初期設定
+    // バージョン情報を含めて初期化
     const defaultConfig = {
       createdAt: Date.now(),
+      appVersion: APP_VERSION,
       resources: {
         "res_default": { name: "コイン", color: "#fbc02d", defaultVal: 0 }
       }
