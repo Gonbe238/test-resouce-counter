@@ -1,0 +1,38 @@
+[
+  {
+    "gameName": "カタン",
+    "resources": [
+      { "name": "木材", "color": "green", "defaultVal": 0 },
+      { "name": "レンガ", "color": "red", "defaultVal": 0 },
+      { "name": "小麦", "color": "yellow", "defaultVal": 0 },
+      { "name": "羊毛", "color": "blue", "defaultVal": 0 },
+      { "name": "鉱石", "color": "black", "defaultVal": 0 }
+    ]
+  },
+  {
+    "gameName": "カルカソンヌ",
+    "resources": [
+      { "name": "得点", "color": "red", "defaultVal": 0 }
+    ]
+  },
+  {
+    "gameName": "テラフォーミング・マーズ",
+    "resources": [
+      { "name": "MC", "color": "yellow", "defaultVal": 0 },
+      { "name": "建材", "color": "brown", "defaultVal": 0 },
+      { "name": "チタン", "color": "gray", "defaultVal": 0 },
+      { "name": "植物", "color": "green", "defaultVal": 0 },
+      { "name": "エネルギー", "color": "purple", "defaultVal": 0 },
+      { "name": "熱", "color": "red", "defaultVal": 0 }
+    ]
+  },
+  {
+    "gameName": "センチュリー:スパイスロード",
+    "resources": [
+      { "name": "黄(ターメリック)", "color": "yellow", "defaultVal": 0 },
+      { "name": "赤(サフラン)", "color": "red", "defaultVal": 0 },
+      { "name": "緑(カルダモン)", "color": "green", "defaultVal": 0 },
+      { "name": "茶(シナモン)", "color": "brown", "defaultVal": 0 }
+    ]
+  }
+]
