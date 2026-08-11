@@ -2,140 +2,273 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ボドゲ リソースカウンター</title>
-  <!-- QRコード生成ライブラリ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; margin: 20px; background: #f4f4f9; color: #333; }
+    body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 15px; background: #f4f4f9; color: #333; }
     .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 500px; }
-    .btn { font-size: 1.5rem; padding: 10px 20px; margin: 5px; border: none; border-radius: 8px; cursor: pointer; }
-    .btn-add { background-color: #4CAF50; color: white; }
-    .btn-sub { background-color: #f44336; color: white; }
-    .resource-val { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+    .btn { font-size: 1.2rem; padding: 10px 18px; margin: 4px; border: none; border-radius: 8px; cursor: pointer; touch-action: manipulation; user-select: none; font-weight: bold; }
+    .btn-action { background-color: #2196F3; color: white; }
+    .btn-danger { background-color: #d32f2f; color: white; font-size: 0.9rem; margin-top: 15px; }
+    .btn-sm { font-size: 0.9rem; padding: 4px 8px; }
+    .btn:active { transform: scale(0.96); opacity: 0.9; }
+    
+    /* リソースカード・操作用 */
+    .resource-card { background: #fff; border-radius: 10px; padding: 12px; margin: 12px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border-left: 8px solid #ccc; text-align: left; }
+    .resource-header { display: flex; justify-content: space-between; align-items: center; }
+    .resource-title { font-size: 1.2rem; font-weight: bold; margin: 0; }
+    .resource-val { font-size: 2.8rem; font-weight: bold; text-align: center; margin: 10px 0; }
+    .btn-group { display: flex; justify-content: center; gap: 15px; }
+    .btn-count { width: 80px; font-size: 1.8rem; color: white; }
+    
+    /* 折りたたみ & フォーム */
+    summary { cursor: pointer; font-weight: bold; padding: 8px; background: #eee; border-radius: 6px; user-select: none; }
     #qrcode { display: flex; justify-content: center; margin: 15px 0; }
-    .player-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+    .form-group { display: flex; gap: 6px; justify-content: center; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .form-group input { padding: 8px; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 6px; }
+    
+    /* プレイヤー一覧（親機） */
+    .player-row { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+    .player-res-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .res-tag { padding: 4px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 0.9rem; }
+    .alert-box { color: #d32f2f; font-weight: bold; padding: 20px; }
   </style>
 </head>
 <body>
 
-  <!-- マザー表示 (iPad側) -->
-  <div id="mother-view" class="card" style="display: none;">
-    <h2>🎲 マザーモニター (部屋ID: <span id="room-id-disp"></span>)</h2>
-    <p>スマホで以下を読み込んで参加！</p>
+<!-- 1. マザー表示 (iPad / 親機) -->
+<div id="mother-view" class="card" style="display: none;">
+  <h2>🎲 マザーモニター</h2>
+  <p>部屋ID: <strong id="room-id-disp" style="font-size: 1.6rem; color: #007bff;"></strong></p>
+  
+  <!-- QRコード折りたたみ -->
+  <details id="qr-details" open>
+    <summary>📱 参加用QRコード（クリックで開閉）</summary>
     <div id="qrcode"></div>
-    <hr>
-    <h3>全プレイヤーの状態</h3>
-    <div id="players-list">待機中...</div>
+  </details>
+
+  <hr style="margin: 20px 0;">
+
+  <!-- リソース種別設定パネル -->
+  <h3>⚙️ リソース設定</h3>
+  <div class="form-group">
+    <input type="text" id="res-name" placeholder="名前 (例: コイン)" style="width: 110px;">
+    <input type="color" id="res-color" value="#4CAF50" style="width: 40px; height: 35px; padding: 0;">
+    <input type="number" id="res-default" placeholder="初期値" value="0" style="width: 60px;">
+    <button class="btn btn-action btn-sm" id="add-res-btn">追加</button>
   </div>
+  <div id="config-res-list" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;"></div>
 
-  <!-- プレイヤー表示 (スマホ側) -->
-  <div id="player-view" class="card" style="display: none;">
-    <h2 id="player-name-disp">プレイヤー画面</h2>
-    <div>
-      <h3>コイン</h3>
-      <div class="resource-val" id="coin-val">0</div>
-      <button class="btn btn-sub" onclick="changeResource('coins', -1)">-1</button>
-      <button class="btn btn-add" onclick="changeResource('coins', 1)">+1</button>
-    </div>
+  <hr style="margin: 20px 0;">
+  <h3>👥 参加プレイヤー一覧</h3>
+  <div id="players-list">待機中...</div>
+  
+  <button id="end-game-btn" class="btn btn-danger">ゲームを終了して部屋を削除</button>
+</div>
+
+<!-- 2. プレイヤー表示 (スマホ / 子機) -->
+<div id="player-view" class="card" style="display: none;">
+  <h2 id="player-name-disp">プレイヤー画面</h2>
+  <div id="player-resources-container">
+    <p>リソースの設定を待っています...</p>
   </div>
+</div>
 
-  <!-- Firebase SDK (Modular) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+<!-- 3. 部屋終了・無効表示 -->
+<div id="closed-view" class="card" style="display: none;">
+  <div class="alert-box">⚠️ 部屋が存在しないか、ゲームが終了しました。</div>
+  <p>QRコードを再度読み直すか、新しいゲームを開始してください。</p>
+</div>
 
-    // 1. Firebase設定（ご自身のものに置き換えてください）
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-    const firebaseConfig = {
-      apiKey: "AIzaSyCDdmGM9W5XEDL-kZiVP_cJ8wniPzfFwig",
-      authDomain: "test-rsc-cnt.firebaseapp.com",
-      databaseURL: "https://test-rsc-cnt-default-rtdb.firebaseio.com",
-      projectId: "test-rsc-cnt",
-      storageBucket: "test-rsc-cnt.firebasestorage.app",
-      messagingSenderId: "48737023040",
-      appId: "1:48737023040:web:cb51e343b84225dd33dba5",
-      measurementId: "G-Y1RJRLMWCQ"
+<script type="module">
+  // 外部化した設定ファイルから db インスタンスを読み込み
+  import { db } from "./firebase-config.js";
+  import { ref, set, onValue, update, remove, onDisconnect, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const role = urlParams.get('role');
+  let roomId = urlParams.get('room');
+
+  // ==========================================
+  // A. マザー制御処理 (iPad / 親機)
+  // ==========================================
+  if (role !== 'player') {
+    document.getElementById('mother-view').style.display = 'block';
+    
+    roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+    document.getElementById('room-id-disp').innerText = roomId;
+
+    const roomRef = ref(db, `rooms/${roomId}`);
+
+    // デフォルトのリソース初期設定
+    const defaultConfig = {
+      createdAt: Date.now(),
+      resources: {
+        "res_default": { name: "コイン", color: "#fbc02d", defaultVal: 0 }
+      }
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    set(roomRef, defaultConfig);
+    onDisconnect(roomRef).remove();
 
-    // URLクエリパラメータの解析
-    const urlParams = new URLSearchParams(window.location.search);
-    const role = urlParams.get('role');
-    let roomId = urlParams.get('room');
-    let playerId = urlParams.get('player');
+    // QRコード生成
+    const joinUrl = `${window.location.origin}${window.location.pathname}?role=player&room=${roomId}`;
+    new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
 
-    // === 【A】マザー側の処理 ===
-    if (role !== 'player') {
-      document.getElementById('mother-view').style.display = 'block';
-      
-      // 部屋IDの発行（ランダム4桁）
-      roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
-      document.getElementById('room-id-disp').innerText = roomId;
+    // 設定リソース一覧の監視・追加処理
+    const configResRef = ref(db, `rooms/${roomId}/resources`);
+    onValue(configResRef, (snapshot) => {
+      const resources = snapshot.val() || {};
+      const listContainer = document.getElementById('config-res-list');
+      listContainer.innerHTML = "";
 
-      // 参加用URLとQRコード生成
-      // ※プレイヤーIDはとりあえずランダム発行して接続させる簡易仕様
-      const joinUrl = `${window.location.origin}${window.location.pathname}?role=player&room=${roomId}&player=P_${Math.floor(Math.random()*1000)}`;
-      new QRCode(document.getElementById("qrcode"), {
-        text: joinUrl,
-        width: 160,
-        height: 160
+      Object.entries(resources).forEach(([resId, res]) => {
+        listContainer.innerHTML += `
+          <span class="res-tag" style="background-color: ${res.color};">
+            ${res.name} (初期値:${res.defaultVal})
+            <span style="cursor:pointer; margin-left:4px;" onclick="window.removeResource('${resId}')">×</span>
+          </span>
+        `;
       });
+    });
 
-      // Firebaseのリアルタイム監視 (`rooms/部屋ID/players`)
-      const playersRef = ref(db, `rooms/${roomId}/players`);
-      onValue(playersRef, (snapshot) => {
-        const data = snapshot.val();
-        const container = document.getElementById('players-list');
-        if (!data) {
-          container.innerHTML = "<p>プレイヤーの参加を待っています...</p>";
-          return;
-        }
+    // リソース追加ボタンハンドラ
+    document.getElementById('add-res-btn').addEventListener('click', () => {
+      const name = document.getElementById('res-name').value.trim();
+      const color = document.getElementById('res-color').value;
+      const defaultVal = parseInt(document.getElementById('res-default').value) || 0;
 
+      if (!name) return alert('リソース名を入力してください');
+
+      const resId = `res_${Date.now()}`;
+      update(ref(db, `rooms/${roomId}/resources/${resId}`), { name, color, defaultVal });
+      document.getElementById('res-name').value = '';
+    });
+
+    // リソース削除関数
+    window.removeResource = (resId) => {
+      remove(ref(db, `rooms/${roomId}/resources/${resId}`));
+    };
+
+    // プレイヤー一覧のリアルタイム監視
+    const playersRef = ref(db, `rooms/${roomId}/players`);
+    onValue(playersRef, (snapshot) => {
+      const players = snapshot.val();
+      const container = document.getElementById('players-list');
+      if (!players) {
+        container.innerHTML = "<p>プレイヤーの参加を待っています...</p>";
+        return;
+      }
+
+      onValue(configResRef, (resSnapshot) => {
+        const resDefs = resSnapshot.val() || {};
         container.innerHTML = "";
-        Object.entries(data).forEach(([id, player]) => {
+
+        Object.entries(players).forEach(([pId, pData]) => {
+          const resValues = pData.resources || {};
+          let tagsHtml = "";
+
+          Object.entries(resDefs).forEach(([rId, rConfig]) => {
+            const val = resValues[rId] !== undefined ? resValues[rId] : rConfig.defaultVal;
+            tagsHtml += `
+              <span class="res-tag" style="background-color: ${rConfig.color}">
+                ${rConfig.name}: ${val}
+              </span>
+            `;
+          });
+
           container.innerHTML += `
             <div class="player-row">
-              <strong>${id}</strong>
-              <span>🪙 コイン: <b>${player.coins || 0}</b></span>
+              <strong>${pId}</strong>
+              <div class="player-res-tags">${tagsHtml || "リソースなし"}</div>
+            </div>
+          `;
+        }, { onlyOnce: true });
+      });
+    });
+
+    // ゲーム終了ボタン
+    document.getElementById('end-game-btn').addEventListener('click', () => {
+      if (confirm('ゲームを終了しますか？（部屋データは削除されます）')) {
+        remove(roomRef).then(() => location.href = window.location.pathname);
+      }
+    });
+
+  // ==========================================
+  // B. プレイヤー制御処理 (スマホ / 子機)
+  // ==========================================
+  } else {
+    const roomRef = ref(db, `rooms/${roomId}`);
+
+    // 部屋の生存監視
+    onValue(roomRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        document.getElementById('player-view').style.display = 'none';
+        document.getElementById('closed-view').style.display = 'block';
+      }
+    });
+
+    document.getElementById('player-view').style.display = 'block';
+
+    let playerId = localStorage.getItem(`player_id_${roomId}`);
+    if (!playerId) {
+      playerId = `P_${Math.floor(1000 + Math.random() * 9000)}`;
+      localStorage.setItem(`player_id_${roomId}`, playerId);
+    }
+    document.getElementById('player-name-disp').innerText = `プレイヤー: ${playerId}`;
+
+    const myResRef = ref(db, `rooms/${roomId}/players/${playerId}/resources`);
+    const configResRef = ref(db, `rooms/${roomId}/resources`);
+
+    // リソース構造の動的描画
+    onValue(configResRef, (configSnapshot) => {
+      const resDefs = configSnapshot.val() || {};
+      const container = document.getElementById('player-resources-container');
+      container.innerHTML = "";
+
+      if (Object.keys(resDefs).length === 0) {
+        container.innerHTML = "<p>設定されているリソースがありません</p>";
+        return;
+      }
+
+      onValue(myResRef, (myResSnapshot) => {
+        const myValues = myResSnapshot.val() || {};
+
+        container.innerHTML = "";
+        Object.entries(resDefs).forEach(([resId, resConfig]) => {
+          const currentVal = myValues[resId] !== undefined ? myValues[resId] : resConfig.defaultVal;
+
+          container.innerHTML += `
+            <div class="resource-card" style="border-left-color: ${resConfig.color};">
+              <div class="resource-header">
+                <span class="resource-title" style="color: ${resConfig.color}">${resConfig.name}</span>
+              </div>
+              <div class="resource-val" id="val-${resId}">${currentVal}</div>
+              <div class="btn-group">
+                <button class="btn btn-count" style="background-color: ${resConfig.color};" onclick="window.changeResource('${resId}', -1)">-1</button>
+                <button class="btn btn-count" style="background-color: ${resConfig.color};" onclick="window.changeResource('${resId}', 1)">+1</button>
+              </div>
             </div>
           `;
         });
       });
+    });
 
-    // === 【B】プレイヤー側の処理 ===
-    } else {
-      document.getElementById('player-view').style.display = 'block';
-      document.getElementById('player-name-disp').innerText = `ID: ${playerId}`;
+    // リソース変更関数
+    window.changeResource = (resId, delta) => {
+      const valElem = document.getElementById(`val-${resId}`);
+      const currentVal = parseInt(valElem ? valElem.innerText : 0) || 0;
 
-      const myRef = ref(db, `rooms/${roomId}/players/${playerId}`);
+      if (currentVal + delta < 0) return; // 0未満防止
 
-      // 初期値の作成
-      set(myRef, { coins: 0 });
-
-      // 自分のデータをリアルタイム反映
-      onValue(myRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          document.getElementById('coin-val').innerText = data.coins || 0;
-        }
+      update(myResRef, {
+        [resId]: increment(delta)
       });
 
-      // カウント変更用関数をグローバルに登録
-      window.changeResource = (resourceType, delta) => {
-        const currentVal = parseInt(document.getElementById('coin-val').innerText) || 0;
-        const newVal = Math.max(0, currentVal + delta); // 0未満にはならない
-        
-        // Firebaseへ書き込み（この瞬間にマザーへも同期される）
-        update(myRef, { [resourceType]: newVal });
-
-        // 押し心地用のタップ振動 (対応端末のみ)
-        if (navigator.vibrate) navigator.vibrate(40);
-      };
-    }
-  </script>
+      if (navigator.vibrate) navigator.vibrate(30);
+    };
+  }
+</script>
 </body>
 </html>
