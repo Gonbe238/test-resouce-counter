@@ -3,76 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ボドゲ リソースカウンター v1.5.0</title>
+  <title>ボドゲ リソースカウンター v1.7.0</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 10px; background: #f1f5f9; color: #0f172a; transition: all 0.2s; }
-    .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin: 10px auto; max-width: 850px; transition: all 0.2s; }
+    body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 10px; background: #f4f4f9; color: #333; transition: all 0.2s; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 800px; transition: all 0.2s; }
     
-    /* ゲーム開始時のフルスクリーン化スタイル (iPad 11" 卓上表示用) */
-    .card.full-screen { max-width: 100vw !important; margin: 0 !important; border-radius: 0; padding: 12px; min-height: 98vh; background: #f8fafc; }
+    /* フルスクリーン・ゲームモード (マザー画面用) */
+    .card.full-screen { max-width: 100vw !important; margin: 0 !important; border-radius: 0; padding: 12px; min-height: 98vh; background: #eef2f7; }
     .hide-on-game.game-mode-hidden { display: none !important; }
 
-    .btn { font-size: 1.1rem; padding: 10px 16px; margin: 4px; border: none; border-radius: 8px; cursor: pointer; touch-action: manipulation; user-select: none; font-weight: bold; }
-    .btn-action { background-color: #2563eb; color: white; }
-    .btn-success { background-color: #059669; color: white; }
-    .btn-danger { background-color: #dc2626; color: white; font-size: 0.9rem; margin-top: 15px; }
-    .btn-sm { font-size: 0.9rem; padding: 6px 12px; }
-    .btn:active { transform: scale(0.95); opacity: 0.9; }
+    /* ボタン共通 */
+    .btn { font-size: 1.1rem; padding: 10px 14px; margin: 2px; border: none; border-radius: 8px; cursor: pointer; touch-action: manipulation; user-select: none; font-weight: bold; }
+    .btn-action { background-color: #2196F3; color: white; }
+    .btn-success { background-color: #10b981; color: white; }
+    .btn-danger { background-color: #d32f2f; color: white; font-size: 0.9rem; margin-top: 15px; }
+    .btn-secondary { background-color: #6c757d; color: white; }
+    .btn-info { background-color: #0284c7; color: white; }
+    .btn-sm { font-size: 0.85rem; padding: 6px 10px; }
+    .btn:active { transform: scale(0.94); opacity: 0.85; }
     
-    /* ------------------------------------------
-       スマホ用: リソースカード・ボタン配置
-    ------------------------------------------ */
-    .resource-card-player { background: #fff; border-radius: 14px; padding: 14px; margin: 14px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.06); border-top: 8px solid #ccc; text-align: center; }
-    .res-card-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 6px; }
-    .res-control-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 4px; }
+    /* プレイヤー画面用 */
+    .resource-card { background: #fff; border-radius: 14px; padding: 14px 10px; margin: 14px 0; box-shadow: 0 3px 8px rgba(0,0,0,0.08); border-top: 8px solid #ccc; text-align: center; }
+    .resource-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 6px; }
+    .resource-control-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
     .btn-side-group { display: flex; gap: 4px; }
-    .btn-ctrl { width: 48px; height: 52px; font-size: 1.1rem; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; touch-action: manipulation; }
-    .btn-ctrl-sub { opacity: 0.85; font-size: 0.9rem; }
-    .res-val-display { font-size: 3.8rem; font-weight: 800; line-height: 1; flex-grow: 1; text-align: center; min-width: 75px; color: #0f172a; }
+    .btn-count-sm { font-size: 0.95rem; padding: 12px 8px; min-width: 42px; opacity: 0.9; }
+    .btn-count-lg { font-size: 1.3rem; padding: 12px 12px; min-width: 52px; }
+    .resource-val { font-size: 3.8rem; font-weight: 800; line-height: 1; flex-grow: 1; margin: 0 6px; color: #111; }
 
-    /* 8色カラーパレット UI */
+    /* カラーパレット UI */
     .color-palette { display: flex; gap: 8px; justify-content: center; margin: 8px 0; flex-wrap: wrap; }
     .color-chip { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
-    .color-chip.selected { border-color: #0f172a; transform: scale(1.2); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .color-chip.selected { border-color: #333; transform: scale(1.2); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
-    /* フォーム & 折りたたみ */
-    summary { cursor: pointer; font-weight: bold; padding: 10px; background: #e2e8f0; border-radius: 8px; user-select: none; text-align: left; margin: 5px 0; }
+    /* フォーム & レイアウト補助 */
+    summary { cursor: pointer; font-weight: bold; padding: 10px; background: #eee; border-radius: 6px; user-select: none; text-align: left; margin: 5px 0; }
     #qrcode { display: flex; justify-content: center; margin: 15px 0; }
     .form-group { display: flex; gap: 8px; justify-content: center; align-items: center; margin: 10px 0; flex-wrap: wrap; }
-    .form-group input { padding: 8px; font-size: 0.9rem; border: 1px solid #cbd5e1; border-radius: 6px; }
-    
-    /* ------------------------------------------
-       親機 (iPad 11") タイル表示
-    ------------------------------------------ */
-    .tiles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 15px; }
-    .player-tile { background: #ffffff; border: 3px solid #cbd5e1; border-top-width: 10px; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); text-align: left; display: flex; flex-direction: column; justify-content: space-between; }
-    .tile-name { font-size: 1.6rem; font-weight: bold; color: #0f172a; margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; word-break: break-all; }
-    
-    /* リソースカード型バッジ */
-    .tile-res-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
-    .res-badge { padding: 10px 8px; border-radius: 10px; color: white; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .res-badge-name { font-size: 0.95rem; opacity: 0.95; margin-bottom: 2px; }
-    .res-badge-val { font-size: 2.5rem; font-weight: 800; line-height: 1; }
-    
-    .alert-box { color: #dc2626; font-weight: bold; padding: 20px; }
-    .version-badge { display: inline-block; background: #e2e8f0; color: #475569; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
-    .app-footer { margin-top: 20px; font-size: 0.8rem; color: #64748b; }
+    .form-group input, .form-group select { padding: 8px; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 6px; }
+    .header-flex { display: flex; justify-content: space-between; align-items: center; }
+    .template-box { background: #f8f9fa; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px; text-align: left; }
+    .flex-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+    /* マザー画面用 タイル (iPad最適化) */
+    .tiles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 10px; }
+    .player-tile { background: #ffffff; border: 1px solid #cbd5e1; border-top-width: 10px; border-radius: 16px; padding: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); text-align: left; display: flex; flex-direction: column; justify-content: space-between; }
+    .tile-name { font-size: 1.5rem; font-weight: bold; color: #0f172a; margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; word-break: break-all; display: flex; justify-content: space-between; align-items: center; }
+    .tile-res-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .res-badge { padding: 8px 14px; border-radius: 12px; color: white; font-weight: bold; font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; }
+    .res-val-disp { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .color-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
+
+    /* ゲームモード時マザー画面 */
+    .card.full-screen .player-tile { padding: 20px; border-radius: 18px; }
+    .card.full-screen .tile-name { font-size: 1.8rem; margin-bottom: 16px; }
+    .card.full-screen .res-badge { padding: 10px 18px; border-radius: 14px; font-size: 1.4rem; }
+    .card.full-screen .res-val-disp { font-size: 3.2rem; }
+
+    .alert-box { color: #d32f2f; font-weight: bold; padding: 20px; }
+    .version-badge { display: inline-block; background: #e0e0e0; color: #666; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
+    .app-footer { margin-top: 20px; font-size: 0.8rem; color: #888; }
   </style>
 </head>
 <body>
 
 <!-- 1. マザー表示 (iPad / 親機) -->
 <div id="mother-view" class="card" style="display: none;">
-  
-  <div style="display: flex; justify-content: space-between; align-items: center;" class="hide-on-game">
-    <h2 style="margin:0;">🎲 マザーモニター <span class="version-badge">v1.5.0</span></h2>
-    <p style="margin:0;">部屋ID: <strong id="room-id-disp" style="font-size: 1.4rem; color: #2563eb;"></strong></p>
+  <div class="header-flex hide-on-game">
+    <h2 style="margin:0;">🎲 マザーモニター <span class="version-badge">v1.7.0</span></h2>
+    <p style="margin:0;">部屋ID: <strong id="room-id-disp" style="font-size: 1.4rem; color: #007bff;"></strong></p>
   </div>
   
   <div style="margin: 10px 0;">
     <button id="toggle-game-mode-btn" class="btn btn-success" style="width: 100%; font-size: 1.3rem; padding: 14px;">
-      ▶️ ゲーム開始（画面全画面化）
+      ▶️ ゲーム開始（画面表示を最大化）
     </button>
   </div>
 
@@ -82,32 +87,49 @@
   </details>
 
   <details id="res-details" class="hide-on-game">
-    <summary>⚙️ リソース設定（クリックで開閉）</summary>
-    <div class="form-group" style="margin-top: 15px;">
+    <summary>⚙️ リソース設定 & テンプレート（クリックで開閉）</summary>
+    
+    <div class="template-box" style="margin-top: 10px;">
+      <div style="font-weight: bold; font-size: 0.95rem; margin-bottom: 8px;">📋 テンプレートから設定</div>
+      <div class="flex-row">
+        <select id="template-select" style="flex-grow: 1; padding: 8px;">
+          <option value="">-- テンプレート読み込み中 --</option>
+        </select>
+        <button class="btn btn-action btn-sm" id="load-template-btn">読み込み</button>
+      </div>
+      <div class="flex-row" style="margin-top: 10px;">
+        <label class="btn btn-secondary btn-sm" style="margin:0; cursor: pointer;">
+          📂 JSONファイル読込
+          <input type="file" id="import-json-input" accept=".json" style="display: none;">
+        </label>
+        <button class="btn btn-info btn-sm" id="export-json-btn">💾 現在の設定をJSON保存</button>
+      </div>
+    </div>
+
+    <div class="form-group">
       <input type="text" id="res-name" placeholder="名前 (例: コイン)" style="width: 120px;">
       <input type="number" id="res-default" placeholder="初期値" value="0" style="width: 70px;">
       <button class="btn btn-action btn-sm" id="add-res-btn">追加</button>
     </div>
     <div style="font-size:0.85rem;">ラベルカラー選択:</div>
     <div class="color-palette" id="res-color-palette"></div>
-    <div id="config-res-list" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 10px;"></div>
+    <div id="config-res-list" class="flex-row" style="justify-content: center; margin-top: 10px;"></div>
   </details>
 
-  <!-- 卓上全体から見やすい超高視認性タイル表示 -->
   <div id="players-tiles" class="tiles-grid">待機中...</div>
   
   <button id="end-game-btn" class="btn btn-danger hide-on-game">ゲームを終了して部屋を削除</button>
-  <div class="app-footer hide-on-game">Board Game Resource Counter v1.5.0</div>
+  <div class="app-footer hide-on-game">Board Game Resource Counter v1.7.0</div>
 </div>
 
 <!-- 2. プレイヤー表示 (スマホ / 子機) -->
 <div id="player-view" class="card" style="display: none; max-width: 480px;">
-  <h2><span>プレイヤー画面</span> <span class="version-badge">v1.5.0</span></h2>
+  <h2><span>プレイヤー画面</span> <span class="version-badge">v1.7.0</span></h2>
   
-  <details open style="margin-bottom: 15px;">
+  <details style="margin-bottom: 15px;">
     <summary>👤 プレイヤー情報設定</summary>
-    <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 10px; flex-direction: column;">
-      <div style="display: flex; gap: 8px; align-items: center;">
+    <div class="form-group" style="background: #f8f9fa; padding: 10px; border-radius: 8px; flex-direction: column;">
+      <div class="flex-row">
         <input type="text" id="player-name-input" placeholder="名前を入力" style="width: 140px;">
         <button class="btn btn-action btn-sm" id="save-player-info-btn">設定更新</button>
       </div>
@@ -116,48 +138,63 @@
     </div>
   </details>
 
-  <!-- リソース制御エリア (+5/-5, 大数字, 両サイド配置) -->
   <div id="player-resources-container">
     <p>リソースの設定を待っています...</p>
   </div>
-  <div class="app-footer">Board Game Resource Counter v1.5.0</div>
+  <div class="app-footer">Board Game Resource Counter v1.7.0</div>
 </div>
 
 <!-- 3. 部屋終了・無効表示 -->
 <div id="closed-view" class="card" style="display: none; max-width: 480px;">
   <div class="alert-box">⚠️ 部屋が存在しないか、ゲームが終了しました。</div>
   <p>QRコードを再度読み直すか、新しいゲームを開始してください。</p>
-  <div class="app-footer">Board Game Resource Counter v1.5.0</div>
+  <div class="app-footer">Board Game Resource Counter v1.7.0</div>
 </div>
 
 <script type="module">
   import { db } from "./firebase-config.js";
-  import { ref, set, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { ref, set, get, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  const APP_VERSION = "1.5.0";
+  const APP_VERSION = "1.7.0";
   const urlParams = new URLSearchParams(window.location.search);
   const role = urlParams.get('role');
   let roomId = urlParams.get('room');
 
+  // 外部化したテンプレートファイルパス
+  const LOCAL_TEMPLATE_URL = "./templates.json";
+
   const PRESET_COLORS = [
-    "#e53935", // 赤
-    "#1e88e5", // 青
-    "#43a047", // 緑
-    "#fdd835", // 黄
-    "#8e24aa", // 紫
-    "#fb8c00", // 橙
-    "#6d4c41", // 茶
-    "#37474f"  // ネイビー
+    "#e53935", "#1e88e5", "#43a047", "#fdd835",
+    "#8e24aa", "#fb8c00", "#6d4c41", "#37474f"
   ];
+
+  const COLOR_NAME_MAP = {
+    "red": "#e53935", "blue": "#1e88e5", "green": "#43a047", "yellow": "#fdd835",
+    "purple": "#8e24aa", "orange": "#fb8c00", "brown": "#6d4c41", "navy": "#37474f",
+    "black": "#37474f", "white": "#ffffff", "gray": "#757575", "grey": "#757575",
+    "pink": "#ec407a", "cyan": "#00bcd4", "lightblue": "#00bcd4"
+  };
+
+  const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, match => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[match]));
+
+  function parseColor(colorInput) {
+    if (!colorInput) return PRESET_COLORS[0];
+    const key = String(colorInput).trim().toLowerCase();
+    return COLOR_NAME_MAP[key] || colorInput;
+  }
+
   let selectedResColor = PRESET_COLORS[0];
   let selectedPlayerColor = PRESET_COLORS[1];
+  let loadedTemplatesData = [];
 
-  function createPalette(containerId, onSelect) {
+  function createPalette(containerId, defaultIdx, onSelect) {
     const paletteElem = document.getElementById(containerId);
     paletteElem.innerHTML = "";
     PRESET_COLORS.forEach((color, idx) => {
       const chip = document.createElement('div');
-      chip.className = `color-chip ${idx === (containerId.includes('player') ? 1 : 0) ? 'selected' : ''}`;
+      chip.className = `color-chip ${idx === defaultIdx ? 'selected' : ''}`;
       chip.style.backgroundColor = color;
       chip.addEventListener('click', () => {
         paletteElem.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
@@ -168,13 +205,33 @@
     });
   }
 
+  async function applyResourceList(gameName, resourceList) {
+    if (!resourceList || !Array.isArray(resourceList) || resourceList.length === 0) {
+      return alert("有効なリソースデータが含まれていません。");
+    }
+    if (!confirm(`リソース設定を「${gameName || 'テンプレート'}」の内容で更新しますか？`)) return;
+
+    const resRef = ref(db, `rooms/${roomId}/resources`);
+    const newResources = {};
+    resourceList.forEach((res, index) => {
+      const resId = `res_${Date.now()}_${index}`;
+      newResources[resId] = {
+        name: res.name || `リソース${index + 1}`,
+        color: parseColor(res.color || PRESET_COLORS[index % PRESET_COLORS.length]),
+        defaultVal: typeof res.defaultVal === 'number' ? res.defaultVal : 0
+      };
+    });
+
+    await set(resRef, newResources);
+    alert(`「${gameName || 'テンプレート'}」のリソース設定を適用しました！`);
+  }
+
   // ==========================================
   // A. マザー制御処理 (iPad / 親機)
   // ==========================================
   if (role !== 'player') {
     document.getElementById('mother-view').style.display = 'block';
-    
-    createPalette('res-color-palette', (color) => { selectedResColor = color; });
+    createPalette('res-color-palette', 0, (color) => { selectedResColor = color; });
 
     let isGameMode = false;
     const toggleBtn = document.getElementById('toggle-game-mode-btn');
@@ -182,19 +239,11 @@
 
     toggleBtn.addEventListener('click', () => {
       isGameMode = !isGameMode;
-      if (isGameMode) {
-        motherCard.classList.add('full-screen');
-        document.querySelectorAll('.hide-on-game').forEach(el => el.classList.add('game-mode-hidden'));
-        toggleBtn.innerText = "⚙️ 設定・制御を表示する";
-        toggleBtn.className = "btn btn-action btn-sm";
-        toggleBtn.style.width = "auto";
-      } else {
-        motherCard.classList.remove('full-screen');
-        document.querySelectorAll('.hide-on-game').forEach(el => el.classList.remove('game-mode-hidden'));
-        toggleBtn.innerText = "▶️ ゲーム開始（画面全画面化）";
-        toggleBtn.className = "btn btn-success";
-        toggleBtn.style.width = "100%";
-      }
+      motherCard.classList.toggle('full-screen', isGameMode);
+      document.querySelectorAll('.hide-on-game').forEach(el => el.classList.toggle('game-mode-hidden', isGameMode));
+      toggleBtn.innerText = isGameMode ? "⚙️ 設定・制御を表示する" : "▶️ ゲーム開始（画面表示を最大化）";
+      toggleBtn.className = isGameMode ? "btn btn-action btn-sm" : "btn btn-success";
+      toggleBtn.style.width = isGameMode ? "auto" : "100%";
     });
 
     roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -204,87 +253,144 @@
     set(roomRef, {
       createdAt: Date.now(),
       appVersion: APP_VERSION,
-      resources: {
-        "res_default": { name: "コイン", color: "#fdd835", defaultVal: 0 }
-      }
+      resources: { "res_default": { name: "コイン", color: "#fdd835", defaultVal: 0 } }
     });
     onDisconnect(roomRef).remove();
 
     const joinUrl = `${window.location.origin}${window.location.pathname}?role=player&room=${roomId}`;
     new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
 
+    // templates.json から動的読み込み
+    const templateSelect = document.getElementById('template-select');
+    
+    fetch(LOCAL_TEMPLATE_URL)
+      .then(res => {
+        if (!res.ok) throw new Error("templates.json が見つかりません");
+        return res.json();
+      })
+      .then(data => {
+        loadedTemplatesData = data;
+        populateTemplates(data);
+      })
+      .catch(err => {
+        console.error("テンプレート読み込みエラー:", err);
+        templateSelect.innerHTML = `<option value="">⚠️ templates.json の読み込み失敗</option>`;
+      });
+
+    function populateTemplates(templates) {
+      templateSelect.innerHTML = `<option value="">-- ゲームを選択 (${templates.length}件) --</option>`;
+      templates.forEach((item, index) => {
+        templateSelect.innerHTML += `<option value="${index}">${escapeHtml(item.gameName)}</option>`;
+      });
+    }
+
+    document.getElementById('load-template-btn').addEventListener('click', () => {
+      const idx = templateSelect.value;
+      if (idx === "") return alert("ゲームを選択してください");
+      applyResourceList(loadedTemplatesData[idx].gameName, loadedTemplatesData[idx].resources);
+    });
+
+    document.getElementById('export-json-btn').addEventListener('click', async () => {
+      const snapshot = await get(ref(db, `rooms/${roomId}/resources`));
+      const resData = snapshot.val() || {};
+      const exportData = {
+        gameName: "カスタムゲーム",
+        resources: Object.values(resData).map(r => ({ name: r.name, color: r.color, defaultVal: r.defaultVal }))
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `resource_template_${roomId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('import-json-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data && Array.isArray(data.resources)) applyResourceList(data.gameName, data.resources);
+          else alert("無効なJSON形式です。'resources' 配列が必要です。");
+        } catch { alert("JSONファイルの読み込みに失敗しました。"); }
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    });
+
+    const configResListContainer = document.getElementById('config-res-list');
+    configResListContainer.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-remove-id]');
+      if (target) remove(ref(db, `rooms/${roomId}/resources/${target.dataset.removeId}`));
+    });
+
     const configResRef = ref(db, `rooms/${roomId}/resources`);
     onValue(configResRef, (snapshot) => {
       const resources = snapshot.val() || {};
-      const listContainer = document.getElementById('config-res-list');
-      listContainer.innerHTML = "";
-
-      Object.entries(resources).forEach(([resId, res]) => {
-        listContainer.innerHTML += `
-          <span style="background-color: ${res.color}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
-            ${res.name} (初期値:${res.defaultVal})
-            <span style="cursor:pointer; margin-left:4px;" onclick="window.removeResource('${resId}')">×</span>
-          </span>
-        `;
-      });
+      configResListContainer.innerHTML = Object.entries(resources).map(([resId, res]) => `
+        <span class="res-badge" style="background-color: ${parseColor(res.color)}; font-size: 0.9rem; padding: 4px 8px;">
+          ${escapeHtml(res.name)} (初期値:${res.defaultVal})
+          <span style="cursor:pointer; margin-left:4px;" data-remove-id="${resId}">×</span>
+        </span>
+      `).join('');
     });
 
     document.getElementById('add-res-btn').addEventListener('click', () => {
       const name = document.getElementById('res-name').value.trim();
-      const defaultVal = parseInt(document.getElementById('res-default').value) || 0;
-
+      const defaultVal = parseInt(document.getElementById('res-default').value, 10) || 0;
       if (!name) return alert('リソース名を入力してください');
-
-      const resId = `res_${Date.now()}`;
-      update(ref(db, `rooms/${roomId}/resources/${resId}`), { name, color: selectedResColor, defaultVal });
+      update(ref(db, `rooms/${roomId}/resources/res_${Date.now()}`), { name, color: selectedResColor, defaultVal });
       document.getElementById('res-name').value = '';
     });
 
-    window.removeResource = (resId) => {
-      remove(ref(db, `rooms/${roomId}/resources/${resId}`));
-    };
+    let currentConfig = {};
+    let currentPlayers = {};
 
-    // iPad11" 向け タイルレンダリング
-    const playersRef = ref(db, `rooms/${roomId}/players`);
-    onValue(playersRef, (snapshot) => {
-      const players = snapshot.val();
+    function renderMotherTiles() {
       const container = document.getElementById('players-tiles');
-      if (!players) {
+      if (!currentPlayers || Object.keys(currentPlayers).length === 0) {
         container.innerHTML = "<p style='grid-column: 1/-1;'>プレイヤーの参加を待っています...</p>";
         return;
       }
 
-      onValue(configResRef, (resSnapshot) => {
-        const resDefs = resSnapshot.val() || {};
-        container.innerHTML = "";
+      container.innerHTML = Object.entries(currentPlayers).map(([pId, pData]) => {
+        const displayName = escapeHtml(pData.name || pId);
+        const pColor = parseColor(pData.color || '#2196F3');
+        const resValues = pData.resources || {};
 
-        Object.entries(players).forEach(([pId, pData]) => {
-          const displayName = pData.name || pId;
-          const pColor = pData.color || '#2563eb';
-          const resValues = pData.resources || {};
-          let badgesHtml = "";
-
-          Object.entries(resDefs).forEach(([rId, rConfig]) => {
-            const val = resValues[rId] !== undefined ? resValues[rId] : rConfig.defaultVal;
-            badgesHtml += `
-              <div class="res-badge" style="background-color: ${rConfig.color}">
-                <span class="res-badge-name">${rConfig.name}</span>
-                <span class="res-badge-val">${val}</span>
-              </div>
-            `;
-          });
-
-          container.innerHTML += `
-            <div class="player-tile" style="border-top-color: ${pColor};">
-              <div class="tile-name">
-                <span>👤 ${displayName}</span>
-                <span style="width: 14px; height: 14px; border-radius: 50%; background-color: ${pColor}; display: inline-block;"></span>
-              </div>
-              <div class="tile-res-list">${badgesHtml || "<span style='color:#94a3b8'>リソースなし</span>"}</div>
+        const badgesHtml = Object.entries(currentConfig).map(([rId, rConfig]) => {
+          const val = resValues[rId] !== undefined ? resValues[rId] : rConfig.defaultVal;
+          return `
+            <div class="res-badge" style="background-color: ${parseColor(rConfig.color)}">
+              <span>${escapeHtml(rConfig.name)}:</span>
+              <span class="res-val-disp">${val}</span>
             </div>
           `;
-        }, { onlyOnce: true });
-      });
+        }).join('');
+
+        return `
+          <div class="player-tile" style="border-top-color: ${pColor};">
+            <div class="tile-name">
+              <span>👤 ${displayName}</span>
+              <span class="color-dot" style="background-color: ${pColor};"></span>
+            </div>
+            <div class="tile-res-list">${badgesHtml || "<span style='color:#999'>リソースなし</span>"}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    onValue(configResRef, (snapshot) => {
+      currentConfig = snapshot.val() || {};
+      renderMotherTiles();
+    });
+
+    onValue(ref(db, `rooms/${roomId}/players`), (snapshot) => {
+      currentPlayers = snapshot.val() || {};
+      renderMotherTiles();
     });
 
     document.getElementById('end-game-btn').addEventListener('click', () => {
@@ -298,7 +404,6 @@
   // ==========================================
   } else {
     const roomRef = ref(db, `rooms/${roomId}`);
-
     onValue(roomRef, (snapshot) => {
       if (!snapshot.exists()) {
         document.getElementById('player-view').style.display = 'none';
@@ -318,11 +423,10 @@
     const myResRef = ref(db, `rooms/${roomId}/players/${playerId}/resources`);
     const configResRef = ref(db, `rooms/${roomId}/resources`);
 
-    createPalette('player-color-palette', (color) => { selectedPlayerColor = color; });
+    createPalette('player-color-palette', 1, (color) => { selectedPlayerColor = color; });
 
     const savedName = localStorage.getItem(`player_name`) || playerId;
     const savedColor = localStorage.getItem(`player_color`) || PRESET_COLORS[1];
-    
     document.getElementById('player-name-input').value = savedName;
     selectedPlayerColor = savedColor;
     update(myPlayerRef, { name: savedName, color: savedColor });
@@ -335,54 +439,62 @@
       alert('プレイヤー情報を更新しました');
     });
 
-    // スマホ用: 両サイドボタン (+5, +1 / -1, -5) & 超大型数値表示
-    onValue(configResRef, (configSnapshot) => {
-      const resDefs = configSnapshot.val() || {};
-      const container = document.getElementById('player-resources-container');
+    let currentConfig = {};
+    let myValues = {};
 
-      if (Object.keys(resDefs).length === 0) {
+    function renderPlayerResources() {
+      const container = document.getElementById('player-resources-container');
+      if (Object.keys(currentConfig).length === 0) {
         container.innerHTML = "<p>設定されているリソースがありません</p>";
         return;
       }
 
-      onValue(myResRef, (myResSnapshot) => {
-        const myValues = myResSnapshot.val() || {};
-        container.innerHTML = "";
+      container.innerHTML = Object.entries(currentConfig).map(([resId, resConfig]) => {
+        const currentVal = myValues[resId] !== undefined ? myValues[resId] : resConfig.defaultVal;
+        const resColor = parseColor(resConfig.color);
 
-        Object.entries(resDefs).forEach(([resId, resConfig]) => {
-          const currentVal = myValues[resId] !== undefined ? myValues[resId] : resConfig.defaultVal;
-
-          container.innerHTML += `
-            <div class="resource-card-player" style="border-top-color: ${resConfig.color};">
-              <div class="res-card-title" style="color: ${resConfig.color};">${resConfig.name}</div>
-              <div class="res-control-row">
-                <div class="btn-side-group">
-                  <button class="btn-ctrl btn-ctrl-sub" style="background-color: ${resConfig.color};" onclick="window.changeResource('${resId}', -5)">-5</button>
-                  <button class="btn-ctrl" style="background-color: ${resConfig.color};" onclick="window.changeResource('${resId}', -1)">-1</button>
-                </div>
-                <div class="res-val-display" id="val-${resId}">${currentVal}</div>
-                <div class="btn-side-group">
-                  <button class="btn-ctrl" style="background-color: ${resConfig.color};" onclick="window.changeResource('${resId}', 1)">+1</button>
-                  <button class="btn-ctrl btn-ctrl-sub" style="background-color: ${resConfig.color};" onclick="window.changeResource('${resId}', 5)">+5</button>
-                </div>
+        return `
+          <div class="resource-card" style="border-top-color: ${resColor};">
+            <div class="resource-title" style="color: ${resColor}">${escapeHtml(resConfig.name)}</div>
+            <div class="resource-control-row">
+              <div class="btn-side-group">
+                <button class="btn btn-count-sm btn-count" style="background-color: ${resColor};" data-res-id="${resId}" data-delta="-5">-5</button>
+                <button class="btn btn-count-lg btn-count" style="background-color: ${resColor};" data-res-id="${resId}" data-delta="-1">-1</button>
+              </div>
+              <div class="resource-val">${currentVal}</div>
+              <div class="btn-side-group">
+                <button class="btn btn-count-lg btn-count" style="background-color: ${resColor};" data-res-id="${resId}" data-delta="1">+1</button>
+                <button class="btn btn-count-sm btn-count" style="background-color: ${resColor};" data-res-id="${resId}" data-delta="5">+5</button>
               </div>
             </div>
-          `;
-        });
-      });
+          </div>
+        `;
+      }).join('');
+    }
+
+    onValue(configResRef, (snapshot) => {
+      currentConfig = snapshot.val() || {};
+      renderPlayerResources();
     });
 
-    window.changeResource = (resId, delta) => {
-      const valElem = document.getElementById(`val-${resId}`);
-      const currentVal = parseInt(valElem ? valElem.innerText : 0) || 0;
-      const newVal = Math.max(0, currentVal + delta);
+    onValue(myResRef, (snapshot) => {
+      myValues = snapshot.val() || {};
+      renderPlayerResources();
+    });
 
-      update(myResRef, {
-        [resId]: newVal
-      });
+    const playerContainer = document.getElementById('player-resources-container');
+    playerContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-count');
+      if (!btn) return;
 
+      const { resId, delta } = btn.dataset;
+      const changeDelta = parseInt(delta, 10);
+      const currentVal = myValues[resId] !== undefined ? myValues[resId] : (currentConfig[resId]?.defaultVal || 0);
+      const newVal = Math.max(0, currentVal + changeDelta);
+
+      update(myResRef, { [resId]: newVal });
       if (navigator.vibrate) navigator.vibrate(30);
-    };
+    });
   }
 </script>
 </body>
