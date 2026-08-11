@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ボドゲ リソースカウンター v1.3.0</title>
+  <title>ボドゲ リソースカウンター v1.4.0</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 15px; background: #f4f4f9; color: #333; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 800px; position: relative; }
+    body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 10px; background: #f4f4f9; color: #333; transition: all 0.2s; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 800px; transition: all 0.2s; }
+    
+    /* ゲーム開始時のフルスクリーン化スタイル */
+    .card.full-screen { max-width: 100vw !important; margin: 0 !important; border-radius: 4px; padding: 10px; min-height: 95vh; }
+    .hide-on-game.game-mode-hidden { display: none !important; }
+
     .btn { font-size: 1.2rem; padding: 10px 18px; margin: 4px; border: none; border-radius: 8px; cursor: pointer; touch-action: manipulation; user-select: none; font-weight: bold; }
     .btn-action { background-color: #2196F3; color: white; }
+    .btn-success { background-color: #10b981; color: white; }
     .btn-danger { background-color: #d32f2f; color: white; font-size: 0.9rem; margin-top: 15px; }
     .btn-sm { font-size: 0.9rem; padding: 6px 12px; }
     .btn:active { transform: scale(0.96); opacity: 0.9; }
@@ -23,22 +29,22 @@
     .btn-count { width: 80px; font-size: 1.8rem; color: white; }
     
     /* 8色カラーパレット UI */
-    .color-palette { display: flex; gap: 8px; justify-content: center; margin: 8px 0; }
+    .color-palette { display: flex; gap: 8px; justify-content: center; margin: 8px 0; flex-wrap: wrap; }
     .color-chip { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
     .color-chip.selected { border-color: #333; transform: scale(1.2); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
     /* フォーム & 折りたたみ */
-    summary { cursor: pointer; font-weight: bold; padding: 8px; background: #eee; border-radius: 6px; user-select: none; }
+    summary { cursor: pointer; font-weight: bold; padding: 10px; background: #eee; border-radius: 6px; user-select: none; text-align: left; margin: 5px 0; }
     #qrcode { display: flex; justify-content: center; margin: 15px 0; }
     .form-group { display: flex; gap: 8px; justify-content: center; align-items: center; margin: 10px 0; flex-wrap: wrap; }
     .form-group input { padding: 8px; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 6px; }
     
     /* タイル表示 (マザー画面用) */
-    .tiles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-top: 15px; }
-    .player-tile { background: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left; display: flex; flex-direction: column; justify-content: space-between; }
-    .tile-name { font-size: 1.3rem; font-weight: bold; color: #1e293b; margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; word-break: break-all; }
+    .tiles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-top: 15px; }
+    .player-tile { background: #ffffff; border: 2px solid #e2e8f0; border-top-width: 8px; border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left; display: flex; flex-direction: column; justify-content: space-between; }
+    .tile-name { font-size: 1.4rem; font-weight: bold; color: #1e293b; margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; word-break: break-all; display: flex; justify-content: space-between; align-items: center; }
     .tile-res-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .res-badge { padding: 6px 12px; border-radius: 8px; color: white; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 6px; }
+    .res-badge { padding: 6px 12px; border-radius: 8px; color: white; font-weight: bold; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 6px; }
     
     .alert-box { color: #d32f2f; font-weight: bold; padding: 20px; }
     .version-badge { display: inline-block; background: #e0e0e0; color: #666; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
@@ -49,65 +55,79 @@
 
 <!-- 1. マザー表示 (iPad / 親機) -->
 <div id="mother-view" class="card" style="display: none;">
-  <h2>🎲 マザーモニター <span class="version-badge">v1.3.0</span></h2>
-  <p>部屋ID: <strong id="room-id-disp" style="font-size: 1.6rem; color: #007bff;"></strong></p>
   
-  <details id="qr-details" open>
+  <div style="display: flex; justify-content: space-between; align-items: center;" class="hide-on-game">
+    <h2 style="margin:0;">🎲 マザーモニター <span class="version-badge">v1.4.0</span></h2>
+    <p style="margin:0;">部屋ID: <strong id="room-id-disp" style="font-size: 1.4rem; color: #007bff;"></strong></p>
+  </div>
+  
+  <!-- ゲーム画面切り替え制御ボタン -->
+  <div style="margin: 10px 0;">
+    <button id="toggle-game-mode-btn" class="btn btn-success" style="width: 100%; font-size: 1.3rem; padding: 12px;">
+      ▶️ ゲーム開始（画面表示を最大化）
+    </button>
+  </div>
+
+  <details id="qr-details" class="hide-on-game" open>
     <summary>📱 参加用QRコード（クリックで開閉）</summary>
     <div id="qrcode"></div>
   </details>
 
-  <hr style="margin: 20px 0;">
+  <!-- 折りたたみ式リソース設定 -->
+  <details id="res-details" class="hide-on-game">
+    <summary>⚙️ リソース設定（クリックで開閉）</summary>
+    <div class="form-group" style="margin-top: 15px;">
+      <input type="text" id="res-name" placeholder="名前 (例: コイン)" style="width: 120px;">
+      <input type="number" id="res-default" placeholder="初期値" value="0" style="width: 70px;">
+      <button class="btn btn-action btn-sm" id="add-res-btn">追加</button>
+    </div>
+    <div style="font-size:0.85rem;">ラベルカラー選択:</div>
+    <div class="color-palette" id="res-color-palette"></div>
+    <div id="config-res-list" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 10px;"></div>
+  </details>
 
-  <!-- 8色カラーパレット付きリソース設定 -->
-  <h3>⚙️ リソース設定</h3>
-  <div class="form-group">
-    <input type="text" id="res-name" placeholder="名前 (例: コイン)" style="width: 120px;">
-    <input type="number" id="res-default" placeholder="初期値" value="0" style="width: 70px;">
-    <button class="btn btn-action btn-sm" id="add-res-btn">追加</button>
-  </div>
-  <div>ラベルカラー選択:</div>
-  <div class="color-palette" id="color-palette"></div>
-  
-  <div id="config-res-list" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 10px;"></div>
-
-  <hr style="margin: 20px 0;">
-  <h3>👥 プレイヤー情報</h3>
-  <!-- 参加人数の変化に合わせて大きさが可変するタイル表示 -->
+  <!-- 参加人数の変化に合わせて大きさが最大可変するタイル表示エリア -->
   <div id="players-tiles" class="tiles-grid">待機中...</div>
   
-  <button id="end-game-btn" class="btn btn-danger">ゲームを終了して部屋を削除</button>
-  <div class="app-footer">Board Game Resource Counter v1.3.0</div>
+  <button id="end-game-btn" class="btn btn-danger hide-on-game">ゲームを終了して部屋を削除</button>
+  <div class="app-footer hide-on-game">Board Game Resource Counter v1.4.0</div>
 </div>
 
 <!-- 2. プレイヤー表示 (スマホ / 子機) -->
 <div id="player-view" class="card" style="display: none; max-width: 500px;">
-  <h2><span>プレイヤー画面</span> <span class="version-badge">v1.3.0</span></h2>
+  <h2><span>プレイヤー画面</span> <span class="version-badge">v1.4.0</span></h2>
   
-  <!-- プレイヤー名変更機能 -->
-  <div class="form-group" style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
-    <input type="text" id="player-name-input" placeholder="名前を入力" style="width: 140px;">
-    <button class="btn btn-action btn-sm" id="save-name-btn">名前保存</button>
-  </div>
+  <!-- プレイヤー名 & カラー設定機能 -->
+  <details open style="margin-bottom: 15px;">
+    <summary>👤 プレイヤー情報設定</summary>
+    <div class="form-group" style="background: #f8f9fa; padding: 10px; border-radius: 8px; flex-direction: column;">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="player-name-input" placeholder="名前を入力" style="width: 140px;">
+        <button class="btn btn-action btn-sm" id="save-player-info-btn">設定更新</button>
+      </div>
+      <div style="font-size: 0.85rem; margin-top: 8px;">マイカラー選択:</div>
+      <div class="color-palette" id="player-color-palette"></div>
+    </div>
+  </details>
 
   <div id="player-resources-container">
     <p>リソースの設定を待っています...</p>
   </div>
-  <div class="app-footer">Board Game Resource Counter v1.3.0</div>
+  <div class="app-footer">Board Game Resource Counter v1.4.0</div>
 </div>
 
 <!-- 3. 部屋終了・無効表示 -->
 <div id="closed-view" class="card" style="display: none; max-width: 500px;">
   <div class="alert-box">⚠️ 部屋が存在しないか、ゲームが終了しました。</div>
   <p>QRコードを再度読み直すか、新しいゲームを開始してください。</p>
-  <div class="app-footer">Board Game Resource Counter v1.3.0</div>
+  <div class="app-footer">Board Game Resource Counter v1.4.0</div>
 </div>
 
 <script type="module">
   import { db } from "./firebase-config.js";
   import { ref, set, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  const APP_VERSION = "1.3.0";
+  const APP_VERSION = "1.4.0";
   const urlParams = new URLSearchParams(window.location.search);
   const role = urlParams.get('role');
   let roomId = urlParams.get('room');
@@ -123,7 +143,25 @@
     "#6d4c41", // 茶
     "#37474f"  // ネイビー
   ];
-  let selectedColor = PRESET_COLORS[0];
+  let selectedResColor = PRESET_COLORS[0];
+  let selectedPlayerColor = PRESET_COLORS[1];
+
+  // カラーパレット描画用共通関数
+  function createPalette(containerId, onSelect) {
+    const paletteElem = document.getElementById(containerId);
+    paletteElem.innerHTML = "";
+    PRESET_COLORS.forEach((color, idx) => {
+      const chip = document.createElement('div');
+      chip.className = `color-chip ${idx === (containerId.includes('player') ? 1 : 0) ? 'selected' : ''}`;
+      chip.style.backgroundColor = color;
+      chip.addEventListener('click', () => {
+        paletteElem.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        onSelect(color);
+      });
+      paletteElem.appendChild(chip);
+    });
+  }
 
   // ==========================================
   // A. マザー制御処理 (iPad / 親機)
@@ -131,18 +169,29 @@
   if (role !== 'player') {
     document.getElementById('mother-view').style.display = 'block';
     
-    // カラーパレット描画
-    const paletteElem = document.getElementById('color-palette');
-    PRESET_COLORS.forEach((color, idx) => {
-      const chip = document.createElement('div');
-      chip.className = `color-chip ${idx === 0 ? 'selected' : ''}`;
-      chip.style.backgroundColor = color;
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
-        chip.classList.add('selected');
-        selectedColor = color;
-      });
-      paletteElem.appendChild(chip);
+    // リソースカラーパレット初期化
+    createPalette('res-color-palette', (color) => { selectedResColor = color; });
+
+    // ゲーム開始（画面最大化）トグルボタン処理
+    let isGameMode = false;
+    const toggleBtn = document.getElementById('toggle-game-mode-btn');
+    const motherCard = document.getElementById('mother-view');
+
+    toggleBtn.addEventListener('click', () => {
+      isGameMode = !isGameMode;
+      if (isGameMode) {
+        motherCard.classList.add('full-screen');
+        document.querySelectorAll('.hide-on-game').forEach(el => el.classList.add('game-mode-hidden'));
+        toggleBtn.innerText = "⚙️ 設定・制御を表示する";
+        toggleBtn.className = "btn btn-action btn-sm";
+        toggleBtn.style.width = "auto";
+      } else {
+        motherCard.classList.remove('full-screen');
+        document.querySelectorAll('.hide-on-game').forEach(el => el.classList.remove('game-mode-hidden'));
+        toggleBtn.innerText = "▶️ ゲーム開始（画面表示を最大化）";
+        toggleBtn.className = "btn btn-success";
+        toggleBtn.style.width = "100%";
+      }
     });
 
     roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -186,7 +235,7 @@
       if (!name) return alert('リソース名を入力してください');
 
       const resId = `res_${Date.now()}`;
-      update(ref(db, `rooms/${roomId}/resources/${resId}`), { name, color: selectedColor, defaultVal });
+      update(ref(db, `rooms/${roomId}/resources/${resId}`), { name, color: selectedResColor, defaultVal });
       document.getElementById('res-name').value = '';
     });
 
@@ -194,7 +243,7 @@
       remove(ref(db, `rooms/${roomId}/resources/${resId}`));
     };
 
-    // プレイヤー一覧のリアルタイム・タイル描画
+    // プレイヤー一覧のリアルタイム・タイル描画（プレイヤーカラー対応）
     const playersRef = ref(db, `rooms/${roomId}/players`);
     onValue(playersRef, (snapshot) => {
       const players = snapshot.val();
@@ -210,6 +259,7 @@
 
         Object.entries(players).forEach(([pId, pData]) => {
           const displayName = pData.name || pId;
+          const pColor = pData.color || '#2196F3'; // 未設定時のデフォルト色
           const resValues = pData.resources || {};
           let badgesHtml = "";
 
@@ -218,14 +268,17 @@
             badgesHtml += `
               <div class="res-badge" style="background-color: ${rConfig.color}">
                 <span>${rConfig.name}:</span>
-                <span style="font-size: 1.3rem;">${val}</span>
+                <span style="font-size: 1.4rem;">${val}</span>
               </div>
             `;
           });
 
           container.innerHTML += `
-            <div class="player-tile">
-              <div class="tile-name">👤 ${displayName}</div>
+            <div class="player-tile" style="border-top-color: ${pColor};">
+              <div class="tile-name">
+                <span>👤 ${displayName}</span>
+                <span style="width: 12px; height: 12px; border-radius: 50%; background-color: ${pColor}; display: inline-block;"></span>
+              </div>
               <div class="tile-res-list">${badgesHtml || "<span style='color:#999'>リソースなし</span>"}</div>
             </div>
           `;
@@ -264,17 +317,23 @@
     const myResRef = ref(db, `rooms/${roomId}/players/${playerId}/resources`);
     const configResRef = ref(db, `rooms/${roomId}/resources`);
 
-    // プレイヤー名の読み込み・保存
-    const savedName = localStorage.getItem(`player_name`) || playerId;
-    const nameInput = document.getElementById('player-name-input');
-    nameInput.value = savedName;
-    update(myPlayerRef, { name: savedName });
+    // プレイヤーカラーパレット作成
+    createPalette('player-color-palette', (color) => { selectedPlayerColor = color; });
 
-    document.getElementById('save-name-btn').addEventListener('click', () => {
-      const newName = nameInput.value.trim() || playerId;
+    // プレイヤー名・カラーの初期化と更新
+    const savedName = localStorage.getItem(`player_name`) || playerId;
+    const savedColor = localStorage.getItem(`player_color`) || PRESET_COLORS[1];
+    
+    document.getElementById('player-name-input').value = savedName;
+    selectedPlayerColor = savedColor;
+    update(myPlayerRef, { name: savedName, color: savedColor });
+
+    document.getElementById('save-player-info-btn').addEventListener('click', () => {
+      const newName = document.getElementById('player-name-input').value.trim() || playerId;
       localStorage.setItem(`player_name`, newName);
-      update(myPlayerRef, { name: newName });
-      alert('名前を変更しました');
+      localStorage.setItem(`player_color`, selectedPlayerColor);
+      update(myPlayerRef, { name: newName, color: selectedPlayerColor });
+      alert('プレイヤー情報を更新しました');
     });
 
     // リソース構造の動的描画
@@ -292,7 +351,6 @@
         container.innerHTML = "";
 
         Object.entries(resDefs).forEach(([resId, resConfig]) => {
-          // DBに値が未保存の場合は設定された初期値（defaultVal）を使用
           const currentVal = myValues[resId] !== undefined ? myValues[resId] : resConfig.defaultVal;
 
           container.innerHTML += `
@@ -311,11 +369,11 @@
       });
     });
 
-    // リソース変更関数 (初期値を基準に正しく加減算)
+    // リソース変更関数
     window.changeResource = (resId, delta) => {
       const valElem = document.getElementById(`val-${resId}`);
       const currentVal = parseInt(valElem ? valElem.innerText : 0) || 0;
-      const newVal = Math.max(0, currentVal + delta); // 0未満防止
+      const newVal = Math.max(0, currentVal + delta);
 
       update(myResRef, {
         [resId]: newVal
